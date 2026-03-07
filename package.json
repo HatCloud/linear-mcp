@@ -5,7 +5,7 @@
   "bin": { "linear-mcp": "./dist/server.js" },
   "files": ["dist"],
   "scripts": {
-    "build": "tsup src/server.ts --format esm --target node20 --clean",
+    "build": "tsup",
     "test": "tsx test/test.ts",
     "test:live": "LINEAR_API_KEY=$LINEAR_API_KEY tsx test/test.ts --live",
     "prepublishOnly": "npm run build"
