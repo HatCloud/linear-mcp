@@ -1,0 +1,22 @@
+{
+  "name": "@hatcloud/linear-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": { "linear-mcp": "./dist/server.js" },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/server.ts --format esm --target node20 --clean",
+    "test": "tsx test/test.ts",
+    "test:live": "LINEAR_API_KEY=$LINEAR_API_KEY tsx test/test.ts --live",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "tsup": "^8.0.0"
+  }
+}
