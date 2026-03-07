@@ -89,6 +89,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "string",
             description: "Filter to sub-issues of this parent UUID",
           },
+          priority: {
+            type: "number",
+            description: "优先级过滤：0=无, 1=紧急, 2=高, 3=普通, 4=低",
+          },
+          query: {
+            type: "string",
+            description: "按标题全文搜索",
+          },
           limit: {
             type: "number",
             description: "Max results (default 25)",
@@ -257,6 +265,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             assignee?: string;
             state?: string;
             parentId?: string;
+            priority?: number;
+            query?: string;
             limit?: number;
           },
           graphql
