@@ -12,13 +12,14 @@ const LINEAR_API_URL = "https://api.linear.app/graphql";
 
 // GraphQLFn 是工具函数接收的"客户端"类型
 // 这样设计是为了方便测试：测试时传入 mock 函数，生产时传入真实客户端
-export type GraphQLFn = (
+// 泛型参数 T 允许调用者直接指定返回类型，避免在调用处做 as 断言
+export type GraphQLFn = <T = Record<string, unknown>>(
   query: string,
   variables?: Record<string, unknown>
-) => Promise<Record<string, unknown>>;
+) => Promise<T>;
 
 export function createGraphQLClient(apiKey: string): GraphQLFn {
-  return async (query: string, variables: Record<string, unknown> = {}) => {
+  return async <T = Record<string, unknown>>(query: string, variables: Record<string, unknown> = {}): Promise<T> => {
     const res = await fetch(LINEAR_API_URL, {
       method: "POST",
       headers: {
@@ -40,7 +41,7 @@ export function createGraphQLClient(apiKey: string): GraphQLFn {
     }
 
     const json = (await res.json()) as {
-      data?: Record<string, unknown>;
+      data?: T;
       errors?: Array<{ message: string }>;
     };
 
@@ -55,6 +56,6 @@ export function createGraphQLClient(apiKey: string): GraphQLFn {
     }
 
     // 成功时返回 data 字段（去掉 GraphQL 的外层包装）
-    return json.data ?? {};
+    return json.data ?? ({} as T);
   };
 }

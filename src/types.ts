@@ -48,3 +48,13 @@ export interface CompactListItem {
 
 // 状态映射（用于 get_status_map 工具的返回值）
 export type StatusMap = Record<string, string>; // { "In Progress": "uuid-xxx", ... }
+
+// 完整状态映射结果（get_status_map 工具的返回类型）
+// 拆分为 map（name→UUID，用于常规操作）和 all（完整列表，含 type 信息）
+// 避免使用 "_all" 字符串 hack 将不同类型的数据混入同一个 Record
+export interface StatusMapResult {
+  // 常用状态的 name → UUID 映射，供 issueUpdate 等操作直接使用
+  map: Record<string, string>;
+  // 团队所有状态的完整列表，含 type 信息，供需要精确匹配的场景使用
+  all: Array<{ id: string; name: string; type: string }>;
+}
