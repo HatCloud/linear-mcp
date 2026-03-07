@@ -61,8 +61,12 @@ export async function createComment(
     throw new Error(`commentCreate failed for issue: ${args.issueId}`);
   }
 
+  const comment = result.comment;
+  if (!comment) {
+    throw new Error(`commentCreate succeeded but returned no comment data`);
+  }
   return {
-    id: result.comment.id,
-    createdAt: result.comment.createdAt,
+    id: comment.id,
+    createdAt: comment.createdAt,
   };
 }

@@ -117,6 +117,9 @@ export async function updateIssue(
   }
 
   const issue = result.issue;
+  if (!issue) {
+    throw new Error(`issueUpdate succeeded but returned no issue data`);
+  }
   return {
     id: issue.id,
     identifier: issue.identifier,

@@ -119,6 +119,9 @@ export async function createIssue(
   }
 
   const issue = result.issue;
+  if (!issue) {
+    throw new Error(`issueCreate succeeded but returned no issue data`);
+  }
   return {
     id: issue.id,
     identifier: issue.identifier,

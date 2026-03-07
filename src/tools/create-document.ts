@@ -120,8 +120,12 @@ export async function createDocument(
     throw new Error(`documentCreate failed for title: ${args.title}`);
   }
 
+  const document = result.document;
+  if (!document) {
+    throw new Error(`documentCreate succeeded but returned no document data`);
+  }
   return {
-    id: result.document.id,
-    url: result.document.url,
+    id: document.id,
+    url: document.url,
   };
 }

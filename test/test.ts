@@ -575,6 +575,16 @@ await test("createComment: 正确返回 id 和 createdAt", async () => {
   assert.equal(result.createdAt, "2026-03-08T10:00:00.000Z");
 });
 
+await test("createComment: API failure throws error", async () => {
+  const mockGraphql: GraphQLFn = async () => ({
+    commentCreate: { success: false, comment: null }
+  });
+  await assert.rejects(
+    () => createComment({ issueId: "uuid-123", body: "text" }, mockGraphql),
+    /commentCreate failed/
+  );
+});
+
 // ─── Unit: createDocument — issueId 解析 ────────────────────────────
 
 console.log("\n[Unit] createDocument — issueId 解析");
