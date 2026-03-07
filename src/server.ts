@@ -206,7 +206,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "create_document",
-      description: "Creates a document in Linear, optionally linked to an issue",
+      description: "Creates a document in Linear belonging to a project, optionally linked to an issue",
       inputSchema: {
         type: "object",
         properties: {
@@ -218,12 +218,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "string",
             description: "Document content (Markdown)",
           },
+          projectId: {
+            type: "string",
+            description: "项目 UUID（必填，文档必须属于某个项目）",
+          },
           issueId: {
             type: "string",
             description: "Issue UUID or identifier to link the document to (optional)",
           },
         },
-        required: ["title", "content"],
+        required: ["title", "content", "projectId"],
       },
     },
   ],
@@ -320,7 +324,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "create_document": {
         const result = await createDocument(
-          args as { title: string; content: string; issueId?: string },
+          args as { title: string; content: string; projectId: string; issueId?: string },
           graphql
         );
         return {

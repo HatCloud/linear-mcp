@@ -2,14 +2,14 @@
 //
 // ── 为什么这个工具存在？ ──────────────────────────────────────────────
 //
-// Linear 的 Document 功能用于在 issue 上附加较长的结构化文档，
+// Linear 的 Document 功能用于在项目中附加较长的结构化文档，
 // 例如设计文档、技术规格、会议记录等。
 // 与评论（comment）不同，Document 是一个独立的实体，有自己的 URL，
-// 可以单独共享和引用。
+// 可以单独共享和引用。文档必须属于某个项目（projectId 必填）。
 //
 // 典型使用场景：
-//   - 把 design.md 或 plan.md 的内容同步到 Linear issue
-//   - 在 issue 上附加 API 设计文档
+//   - 把 design.md 或 plan.md 的内容同步到 Linear 项目
+//   - 在项目中附加 API 设计文档
 //   - 记录架构决策（ADR）
 //
 // ── GraphQL mutation 结构说明 ────────────────────────────────────────
@@ -24,9 +24,10 @@
 //   }
 //
 // DocumentCreateInput 的关键字段：
-//   - title: String!     — 文档标题
-//   - content: String!   — 文档内容（Markdown 格式）
-//   - issueId: String    — 可选，关联到指定 issue（必须是 UUID）
+//   - title: String!      — 文档标题
+//   - content: String!    — 文档内容（Markdown 格式）
+//   - projectId: String!  — 必填，文档所属项目的 UUID
+//   - issueId: String     — 可选，关联到指定 issue（必须是 UUID）
 //
 // 为什么 issueId 需要特殊处理？
 // documentCreate 的 issueId 字段只接受 UUID，不接受 identifier（如 "HAT-155"）。
@@ -46,8 +47,8 @@
 //
 // ── 动态 input 构建的思路 ────────────────────────────────────────────
 //
-// title 和 content 是必填项。issueId 是可选的：
-// - 不传 issueId：创建独立文档（不关联任何 issue）
+// title、content、projectId 是必填项。issueId 是可选的：
+// - 不传 issueId：创建项目文档（不关联任何 issue）
 // - 传 issueId：关联到指定 issue，文档会出现在该 issue 的 Docs 标签页
 //
 // 与其他写入工具一样，只在用户实际传入 issueId 时才把它加入 input，
@@ -70,6 +71,7 @@ export async function createDocument(
   args: {
     title: string;      // 文档标题（必填）
     content: string;    // 文档内容，Markdown 格式（必填）
+    projectId: string;  // 所属项目的 UUID（必填）
     issueId?: string;   // 关联的 issue：支持 UUID 或 identifier（如 "HAT-155"）
   },
   graphql: GraphQLFn
@@ -78,6 +80,7 @@ export async function createDocument(
   const input: Record<string, unknown> = {
     title: args.title,
     content: args.content,
+    projectId: args.projectId,
   };
 
   if (args.issueId !== undefined) {

@@ -605,7 +605,7 @@ await test("createDocument: issueId 为 UUID 时，直接使用，不发额外�
   };
 
   const uuidIssueId = "1de25fc9-abcd-4567-89ab-1234567890ab";
-  await createDocument({ title: "设计文档", content: "## 内容", issueId: uuidIssueId }, mockDoc);
+  await createDocument({ title: "设计文档", content: "## 内容", projectId: "proj-uuid", issueId: uuidIssueId }, mockDoc);
 
   // 只应有一次调用（documentCreate），不应有解析 identifier 的额外查询
   assert.equal(calls.length, 1, "UUID 格式时只应调用一次（documentCreate）");
@@ -632,7 +632,7 @@ await test("createDocument: issueId 为 identifier（如 HAT-155）时，先解�
     return {};
   };
 
-  await createDocument({ title: "设计文档", content: "## 内容", issueId: "HAT-155" }, mockDoc);
+  await createDocument({ title: "设计文档", content: "## 内容", projectId: "proj-uuid", issueId: "HAT-155" }, mockDoc);
 
   // 应有两次调用：第一次解析 identifier，第二次 documentCreate
   assert.equal(calls.length, 2, "identifier 格式时应有两次调用");
@@ -648,7 +648,7 @@ await test("createDocument: identifier 解析失败时抛出错误", async () =>
     return {};
   };
   await assert.rejects(
-    () => createDocument({ title: "文档", content: "内容", issueId: "HAT-999" }, mockDoc),
+    () => createDocument({ title: "文档", content: "内容", projectId: "proj-uuid", issueId: "HAT-999" }, mockDoc),
     /Could not resolve issue identifier/
   );
 });
@@ -664,11 +664,12 @@ await test("createDocument: 不传 issueId 时，正常创建独立文档", asyn
       },
     };
   };
-  const result = await createDocument({ title: "独立文档", content: "## 内容" }, mockDoc);
+  const result = await createDocument({ title: "独立文档", content: "## 内容", projectId: "proj-uuid" }, mockDoc);
 
   const input = capturedVariables.input as Record<string, unknown>;
   // input 中不应有 issueId 字段
   assert.equal(input.issueId, undefined, "未传 issueId 时不应出现在 input 中");
+  assert.equal(input.projectId, "proj-uuid", "projectId 应出现在 input 中");
   assert.equal(input.title, "独立文档");
   assert.equal(result.id, "doc-uuid-001");
   assert.equal(result.url, "https://linear.app/hatcloud/document/doc-uuid-001");
