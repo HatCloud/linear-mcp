@@ -28,6 +28,10 @@ import assert from "node:assert";
 import { getIssue } from "../src/tools/get-issue.js";
 import { listIssues } from "../src/tools/list-issues.js";
 import { getStatusMap } from "../src/tools/get-status-map.js";
+import { updateIssue } from "../src/tools/update-issue.js";
+import { createIssue } from "../src/tools/create-issue.js";
+import { createComment } from "../src/tools/create-comment.js";
+import { createDocument } from "../src/tools/create-document.js";
 import type { GraphQLFn } from "../src/graphql.js";
 
 // ─── Test Harness ───────────────────────────────────────────────────
@@ -349,6 +353,315 @@ await test("getStatusMap: 未知 team key 抛出错误", async () => {
     () => getStatusMap({ team: "UNKNOWN" }, mockUnknownKey),
     /Team key "UNKNOWN" not found/
   );
+});
+
+// ─── Unit: updateIssue — 动态 input 构建 ────────────────────────────
+
+console.log("\n[Unit] updateIssue — 动态 input 构建");
+
+await test("updateIssue: 只传 state 时，input 只包含 stateId，不含其他字段", async () => {
+  let capturedVariables: Record<string, unknown> = {};
+  const mockUpdate: GraphQLFn = async (_query, variables = {}) => {
+    capturedVariables = variables;
+    return {
+      issueUpdate: {
+        success: true,
+        issue: { id: "issue-uuid-001", identifier: "HAT-155", title: "测试标题", state: { name: "In Progress" } },
+      },
+    };
+  };
+  await updateIssue({ id: "issue-uuid-001", state: "state-uuid-started" }, mockUpdate);
+
+  const input = capturedVariables.input as Record<string, unknown>;
+  // 只有 stateId 应该在 input 里
+  assert.equal(input.stateId, "state-uuid-started", "stateId 应被设置");
+  // 其他字段不应出现（不传的字段不应意外覆盖）
+  assert.equal(input.title, undefined, "未传 title，不应出现在 input");
+  assert.equal(input.description, undefined, "未传 description，不应出现在 input");
+  assert.equal(input.assigneeId, undefined, "未传 assignee，不应出现在 input");
+  assert.equal(input.priority, undefined, "未传 priority，不应出现在 input");
+});
+
+await test("updateIssue: 同时传多个字段时，input 包含所有传入字段", async () => {
+  let capturedVariables: Record<string, unknown> = {};
+  const mockUpdate: GraphQLFn = async (_query, variables = {}) => {
+    capturedVariables = variables;
+    return {
+      issueUpdate: {
+        success: true,
+        issue: { id: "issue-uuid-001", identifier: "HAT-155", title: "新标题", state: { name: "Done" } },
+      },
+    };
+  };
+  await updateIssue(
+    { id: "issue-uuid-001", title: "新标题", priority: 1, state: "state-uuid-done" },
+    mockUpdate
+  );
+
+  const input = capturedVariables.input as Record<string, unknown>;
+  assert.equal(input.title, "新标题", "title 应被设置");
+  assert.equal(input.priority, 1, "priority 应被设置");
+  assert.equal(input.stateId, "state-uuid-done", "stateId 应被设置");
+  // 未传的字段不应出现
+  assert.equal(input.description, undefined, "未传 description，不应出现");
+});
+
+await test("updateIssue: parentId=null 时，input 中包含 null（移除父级）", async () => {
+  let capturedVariables: Record<string, unknown> = {};
+  const mockUpdate: GraphQLFn = async (_query, variables = {}) => {
+    capturedVariables = variables;
+    return {
+      issueUpdate: {
+        success: true,
+        issue: { id: "issue-uuid-001", identifier: "HAT-155", title: "测试", state: { name: "Backlog" } },
+      },
+    };
+  };
+  await updateIssue({ id: "issue-uuid-001", parentId: null }, mockUpdate);
+
+  const input = capturedVariables.input as Record<string, unknown>;
+  // null 是合法值，表示移除父级关系，必须明确出现在 input 里
+  assert.ok("parentId" in input, "parentId 应出现在 input 中");
+  assert.equal(input.parentId, null, "parentId 应为 null");
+});
+
+await test("updateIssue: 不传任何字段时抛出错误", async () => {
+  const mockUpdate: GraphQLFn = async () => ({ issueUpdate: { success: true, issue: {} } });
+  await assert.rejects(
+    () => updateIssue({ id: "issue-uuid-001" }, mockUpdate),
+    /没有提供任何要更新的字段/
+  );
+});
+
+await test("updateIssue: 正确返回 id、identifier、title、state 字符串", async () => {
+  const mockUpdate: GraphQLFn = async () => ({
+    issueUpdate: {
+      success: true,
+      issue: { id: "issue-uuid-001", identifier: "HAT-155", title: "完成了", state: { name: "Done" } },
+    },
+  });
+  const result = await updateIssue({ id: "issue-uuid-001", state: "state-done-uuid" }, mockUpdate);
+  assert.equal(result.id, "issue-uuid-001");
+  assert.equal(result.identifier, "HAT-155");
+  assert.equal(result.title, "完成了");
+  assert.equal(result.state, "Done", "state 应被展平为 state.name 字符串");
+});
+
+// ─── Unit: createIssue — variables 验证 ────────────────────────────
+
+console.log("\n[Unit] createIssue — variables 验证");
+
+await test("createIssue: variables 中包含 teamId 和 title", async () => {
+  let capturedVariables: Record<string, unknown> = {};
+  const mockCreate: GraphQLFn = async (_query, variables = {}) => {
+    capturedVariables = variables;
+    return {
+      issueCreate: {
+        success: true,
+        issue: { id: "new-issue-uuid", identifier: "HAT-200", title: "新任务", url: "https://linear.app/hatcloud/issue/HAT-200" },
+      },
+    };
+  };
+  await createIssue({ teamId: "team-hat-uuid", title: "新任务" }, mockCreate);
+
+  const input = capturedVariables.input as Record<string, unknown>;
+  assert.equal(input.teamId, "team-hat-uuid", "teamId 应在 input 中");
+  assert.equal(input.title, "新任务", "title 应在 input 中");
+});
+
+await test("createIssue: 不传可选字段时，input 中不含这些字段", async () => {
+  let capturedVariables: Record<string, unknown> = {};
+  const mockCreate: GraphQLFn = async (_query, variables = {}) => {
+    capturedVariables = variables;
+    return {
+      issueCreate: {
+        success: true,
+        issue: { id: "new-issue-uuid", identifier: "HAT-200", title: "新任务", url: "https://linear.app/hatcloud/issue/HAT-200" },
+      },
+    };
+  };
+  await createIssue({ teamId: "team-hat-uuid", title: "新任务" }, mockCreate);
+
+  const input = capturedVariables.input as Record<string, unknown>;
+  assert.equal(input.description, undefined, "未传 description 不应出现");
+  assert.equal(input.projectId, undefined, "未传 projectId 不应出现");
+  assert.equal(input.stateId, undefined, "未传 state 不应出现");
+  assert.equal(input.assigneeId, undefined, "未传 assignee 不应出现");
+  assert.equal(input.priority, undefined, "未传 priority 不应出现");
+});
+
+await test("createIssue: 传入可选字段时正确映射到 input", async () => {
+  let capturedVariables: Record<string, unknown> = {};
+  const mockCreate: GraphQLFn = async (_query, variables = {}) => {
+    capturedVariables = variables;
+    return {
+      issueCreate: {
+        success: true,
+        issue: { id: "new-issue-uuid", identifier: "HAT-200", title: "新任务", url: "https://linear.app/hatcloud/issue/HAT-200" },
+      },
+    };
+  };
+  await createIssue(
+    {
+      teamId: "team-hat-uuid",
+      title: "新任务",
+      description: "详细描述",
+      projectId: "proj-uuid",
+      state: "state-uuid",
+      assignee: "user-uuid",
+      priority: 2,
+    },
+    mockCreate
+  );
+
+  const input = capturedVariables.input as Record<string, unknown>;
+  assert.equal(input.description, "详细描述");
+  assert.equal(input.projectId, "proj-uuid");
+  assert.equal(input.stateId, "state-uuid", "state 参数应映射为 stateId");
+  assert.equal(input.assigneeId, "user-uuid", "assignee 参数应映射为 assigneeId");
+  assert.equal(input.priority, 2);
+});
+
+await test("createIssue: 正确返回 id、identifier、title、url", async () => {
+  const mockCreate: GraphQLFn = async () => ({
+    issueCreate: {
+      success: true,
+      issue: {
+        id: "new-issue-uuid",
+        identifier: "HAT-200",
+        title: "新任务",
+        url: "https://linear.app/hatcloud/issue/HAT-200",
+      },
+    },
+  });
+  const result = await createIssue({ teamId: "team-hat-uuid", title: "新任务" }, mockCreate);
+  assert.equal(result.id, "new-issue-uuid");
+  assert.equal(result.identifier, "HAT-200");
+  assert.equal(result.title, "新任务");
+  assert.equal(result.url, "https://linear.app/hatcloud/issue/HAT-200");
+});
+
+// ─── Unit: createComment — issueId 和 body 传递 ─────────────────────
+
+console.log("\n[Unit] createComment — issueId 和 body 传递");
+
+await test("createComment: issueId 和 body 正确传递到 input", async () => {
+  let capturedVariables: Record<string, unknown> = {};
+  const mockComment: GraphQLFn = async (_query, variables = {}) => {
+    capturedVariables = variables;
+    return {
+      commentCreate: {
+        success: true,
+        comment: { id: "comment-uuid-001", createdAt: "2026-03-08T10:00:00.000Z" },
+      },
+    };
+  };
+  await createComment({ issueId: "issue-uuid-001", body: "这个 bug 已修复" }, mockComment);
+
+  const input = capturedVariables.input as Record<string, unknown>;
+  assert.equal(input.issueId, "issue-uuid-001", "issueId 应正确传递");
+  assert.equal(input.body, "这个 bug 已修复", "body 应正确传递");
+});
+
+await test("createComment: 正确返回 id 和 createdAt", async () => {
+  const mockComment: GraphQLFn = async () => ({
+    commentCreate: {
+      success: true,
+      comment: { id: "comment-uuid-001", createdAt: "2026-03-08T10:00:00.000Z" },
+    },
+  });
+  const result = await createComment({ issueId: "issue-uuid-001", body: "评论内容" }, mockComment);
+  assert.equal(result.id, "comment-uuid-001");
+  assert.equal(result.createdAt, "2026-03-08T10:00:00.000Z");
+});
+
+// ─── Unit: createDocument — issueId 解析 ────────────────────────────
+
+console.log("\n[Unit] createDocument — issueId 解析");
+
+await test("createDocument: issueId 为 UUID 时，直接使用，不发额外查询", async () => {
+  const calls: string[] = [];
+  const mockDoc: GraphQLFn = async (query, variables = {}) => {
+    calls.push(query.trim().split("\n")[0]);  // 记录每次调用的 mutation/query 第一行
+    if (query.includes("documentCreate")) {
+      return {
+        documentCreate: {
+          success: true,
+          document: { id: "doc-uuid-001", url: "https://linear.app/hatcloud/document/doc-uuid-001" },
+        },
+      };
+    }
+    return {};
+  };
+
+  const uuidIssueId = "1de25fc9-abcd-4567-89ab-1234567890ab";
+  await createDocument({ title: "设计文档", content: "## 内容", issueId: uuidIssueId }, mockDoc);
+
+  // 只应有一次调用（documentCreate），不应有解析 identifier 的额外查询
+  assert.equal(calls.length, 1, "UUID 格式时只应调用一次（documentCreate）");
+  assert.ok(calls[0].includes("mutation"), "唯一调用应为 mutation");
+});
+
+await test("createDocument: issueId 为 identifier（如 HAT-155）时，先解析为 UUID", async () => {
+  const calls: string[] = [];
+  const mockDoc: GraphQLFn = async (query, _variables = {}) => {
+    calls.push(query);
+    if (query.includes("ResolveIssue")) {
+      // 第一次调用：解析 identifier → UUID
+      return { issue: { id: "resolved-uuid-001" } };
+    }
+    if (query.includes("documentCreate")) {
+      // 第二次调用：创建文档，使用解析后的 UUID
+      return {
+        documentCreate: {
+          success: true,
+          document: { id: "doc-uuid-001", url: "https://linear.app/hatcloud/document/doc-uuid-001" },
+        },
+      };
+    }
+    return {};
+  };
+
+  await createDocument({ title: "设计文档", content: "## 内容", issueId: "HAT-155" }, mockDoc);
+
+  // 应有两次调用：第一次解析 identifier，第二次 documentCreate
+  assert.equal(calls.length, 2, "identifier 格式时应有两次调用");
+  assert.ok(calls[0].includes("ResolveIssue"), "第一次调用应为 ResolveIssue query");
+  assert.ok(calls[1].includes("documentCreate"), "第二次调用应为 documentCreate mutation");
+});
+
+await test("createDocument: identifier 解析失败时抛出错误", async () => {
+  const mockDoc: GraphQLFn = async (query) => {
+    if (query.includes("ResolveIssue")) {
+      return { issue: null };  // 找不到 issue
+    }
+    return {};
+  };
+  await assert.rejects(
+    () => createDocument({ title: "文档", content: "内容", issueId: "HAT-999" }, mockDoc),
+    /Could not resolve issue identifier/
+  );
+});
+
+await test("createDocument: 不传 issueId 时，正常创建独立文档", async () => {
+  let capturedVariables: Record<string, unknown> = {};
+  const mockDoc: GraphQLFn = async (_query, variables = {}) => {
+    capturedVariables = variables;
+    return {
+      documentCreate: {
+        success: true,
+        document: { id: "doc-uuid-001", url: "https://linear.app/hatcloud/document/doc-uuid-001" },
+      },
+    };
+  };
+  const result = await createDocument({ title: "独立文档", content: "## 内容" }, mockDoc);
+
+  const input = capturedVariables.input as Record<string, unknown>;
+  // input 中不应有 issueId 字段
+  assert.equal(input.issueId, undefined, "未传 issueId 时不应出现在 input 中");
+  assert.equal(input.title, "独立文档");
+  assert.equal(result.id, "doc-uuid-001");
+  assert.equal(result.url, "https://linear.app/hatcloud/document/doc-uuid-001");
 });
 
 // ─── Live 测试（需要 --live 参数和 LINEAR_API_KEY）──────────────────
