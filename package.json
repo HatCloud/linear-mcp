@@ -2,8 +2,12 @@
   "name": "@hatcloud/linear-mcp",
   "version": "1.0.0",
   "type": "module",
-  "bin": { "linear-mcp": "./dist/server.js" },
-  "files": ["dist"],
+  "bin": {
+    "linear-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "tsx test/test.ts",
