@@ -74,7 +74,8 @@ export async function updateIssue(
     input.stateId = args.state;
   }
   if (args.description !== undefined) {
-    input.description = args.description;
+    // 防御性修复：MCP 参数传递可能导致 \n 被双重转义为 \\n
+    input.description = args.description.replace(/\\n/g, "\n");
   }
   if (args.assignee !== undefined) {
     // 同样，Linear API 用 assigneeId（UUID），而不是 assignee 对象

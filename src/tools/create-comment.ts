@@ -53,7 +53,7 @@ export async function createComment(
         comment { id createdAt }
       }
     }`,
-    { input: { issueId: args.issueId, body: args.body } }
+    { input: { issueId: args.issueId, body: args.body.replace(/\\n/g, "\n") } }
   );
 
   const result = data.commentCreate;

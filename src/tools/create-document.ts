@@ -79,7 +79,7 @@ export async function createDocument(
   // 动态构建 input 对象
   const input: Record<string, unknown> = {
     title: args.title,
-    content: args.content,
+    content: args.content.replace(/\\n/g, "\n"),
     projectId: args.projectId,
   };
 

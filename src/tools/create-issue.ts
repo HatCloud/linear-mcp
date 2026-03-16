@@ -81,7 +81,8 @@ export async function createIssue(
   };
 
   if (args.description !== undefined) {
-    input.description = args.description;
+    // 防御性修复：MCP 参数传递可能导致 \n 被双重转义为 \\n
+    input.description = args.description.replace(/\\n/g, "\n");
   }
   if (args.projectId !== undefined) {
     input.projectId = args.projectId;
