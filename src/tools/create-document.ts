@@ -25,9 +25,12 @@
 //
 // DocumentCreateInput 的关键字段：
 //   - title: String!      — 文档标题
-//   - content: String!    — 文档内容（Markdown 格式）
-//   - projectId: String!  — 必填，文档所属项目的 UUID
-//   - issueId: String     — 可选，关联到指定 issue（必须是 UUID）
+//   - content: String      — 文档内容（Markdown 格式）
+//   - projectId: String    — 文档所属项目的 UUID（与 issueId 互斥）
+//   - issueId: String      — 关联到指定 issue（与 projectId 互斥）
+//
+// ⚠️ 互斥约束：projectId, issueId, teamId, initiativeId, releaseId, cycleId
+// 这 6 个字段只能传其中一个。传 issueId 时文档自动归属该 issue 所在项目。
 //
 // 为什么 issueId 需要特殊处理？
 // documentCreate 的 issueId 字段只接受 UUID，不接受 identifier（如 "HAT-155"）。
@@ -47,11 +50,12 @@
 //
 // ── 动态 input 构建的思路 ────────────────────────────────────────────
 //
-// title、content、projectId 是必填项。issueId 是可选的：
-// - 不传 issueId：创建项目文档（不关联任何 issue）
-// - 传 issueId：关联到指定 issue，文档会出现在该 issue 的 Docs 标签页
+// title 和 content 是必填项。projectId 和 issueId 至少传一个（互斥）：
+// - 只传 projectId：创建项目文档（不关联任何 issue）
+// - 只传 issueId：关联到指定 issue，文档会出现在该 issue 的 Docs 标签页
+// - 同时传两个：报错（Linear API 不允许）
 //
-// 与其他写入工具一样，只在用户实际传入 issueId 时才把它加入 input，
+// 与其他写入工具一样，只在用户实际传入字段时才把它加入 input，
 // 避免传入 undefined 或空字符串导致 API 报错。
 
 import type { GraphQLFn } from "../graphql.js";
@@ -69,20 +73,25 @@ function looksLikeUUID(s: string): boolean {
 
 export async function createDocument(
   args: {
-    title: string;      // 文档标题（必填）
-    content: string;    // 文档内容，Markdown 格式（必填）
-    projectId: string;  // 所属项目的 UUID（必填）
-    issueId?: string;   // 关联的 issue：支持 UUID 或 identifier（如 "HAT-155"）
+    title: string;       // 文档标题（必填）
+    content: string;     // 文档内容，Markdown 格式（必填）
+    projectId?: string;  // 所属项目的 UUID（与 issueId 互斥，至少传一个）
+    issueId?: string;    // 关联的 issue：支持 UUID 或 identifier（与 projectId 互斥）
   },
   graphql: GraphQLFn
 ): Promise<{ id: string; url: string }> {
+  // 校验：至少传一个归属字段
+  if (!args.projectId && !args.issueId) {
+    throw new Error("Either projectId or issueId must be provided");
+  }
+
   // 动态构建 input 对象
   const input: Record<string, unknown> = {
     title: args.title,
     content: args.content.replace(/\\n/g, "\n"),
-    projectId: args.projectId,
   };
 
+  // projectId 和 issueId 互斥（Linear DocumentCreateInput 约束）
   if (args.issueId !== undefined) {
     let resolvedIssueId = args.issueId;
 
@@ -101,6 +110,8 @@ export async function createDocument(
     }
 
     input.issueId = resolvedIssueId;
+  } else {
+    input.projectId = args.projectId;
   }
 
   const data = await graphql<{

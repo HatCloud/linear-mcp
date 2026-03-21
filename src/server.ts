@@ -228,14 +228,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
           projectId: {
             type: "string",
-            description: "项目 UUID（必填，文档必须属于某个项目）",
+            description: "项目 UUID（与 issueId 互斥，至少传一个）",
           },
           issueId: {
             type: "string",
-            description: "Issue UUID or identifier to link the document to (optional)",
+            description:
+              "Issue UUID or identifier (e.g. 'HAT-192') to link the document to. " +
+              "Mutually exclusive with projectId — when provided, projectId is ignored.",
           },
         },
-        required: ["title", "content", "projectId"],
+        required: ["title", "content"],
       },
     },
   ],
@@ -334,7 +336,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "create_document": {
         const result = await createDocument(
-          args as { title: string; content: string; projectId: string; issueId?: string },
+          args as { title: string; content: string; projectId?: string; issueId?: string },
           graphql
         );
         return {
