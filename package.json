@@ -1,6 +1,6 @@
 {
   "name": "@hatcloud/linear-mcp",
-  "version": "1.0.3",
+  "version": "1.1.1",
   "type": "module",
   "bin": {
     "linear-mcp": "dist/server.js"
