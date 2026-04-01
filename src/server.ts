@@ -15,11 +15,21 @@ import {
 import { createGraphQLClient } from "./graphql.js";
 import { getIssue } from "./tools/get-issue.js";
 import { listIssues } from "./tools/list-issues.js";
+import { searchIssues } from "./tools/search-issues.js";
 import { getStatusMap } from "./tools/get-status-map.js";
 import { updateIssue } from "./tools/update-issue.js";
 import { createIssue } from "./tools/create-issue.js";
 import { createComment } from "./tools/create-comment.js";
 import { createDocument } from "./tools/create-document.js";
+import { listComments } from "./tools/list-comments.js";
+import { getComment } from "./tools/get-comment.js";
+import { listAttachments } from "./tools/list-attachments.js";
+import { createAttachment } from "./tools/create-attachment.js";
+import { archiveIssue } from "./tools/archive-issue.js";
+import { listTeams } from "./tools/list-teams.js";
+import { listProjects } from "./tools/list-projects.js";
+import { createProject } from "./tools/create-project.js";
+import { updateProject } from "./tools/update-project.js";
 
 // ── 环境变量检查 ───────────────────────────────────────────────────────
 
@@ -240,6 +250,191 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ["title", "content"],
       },
     },
+    {
+      name: "search_issues",
+      description: "Search issues by title with optional filters",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "Search query (matches issue title, case-insensitive)",
+          },
+          team: {
+            type: "string",
+            description: "Team UUID filter",
+          },
+          project: {
+            type: "string",
+            description: "Project name filter",
+          },
+          assignee: {
+            type: "string",
+            description: "\"me\" or user UUID",
+          },
+          state: {
+            type: "string",
+            description: "State name filter",
+          },
+          limit: {
+            type: "number",
+            description: "Max results (default 25)",
+          },
+        },
+        required: ["query"],
+      },
+    },
+    {
+      name: "list_comments",
+      description: "List comments on an issue",
+      inputSchema: {
+        type: "object",
+        properties: {
+          issueId: {
+            type: "string",
+            description: "Issue UUID or identifier (e.g. \"HAT-155\")",
+          },
+          limit: {
+            type: "number",
+            description: "Max results (default 25)",
+          },
+        },
+        required: ["issueId"],
+      },
+    },
+    {
+      name: "get_comment",
+      description: "Get a single comment by ID",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            description: "Comment UUID",
+          },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "list_attachments",
+      description: "List attachments on an issue",
+      inputSchema: {
+        type: "object",
+        properties: {
+          issueId: {
+            type: "string",
+            description: "Issue UUID",
+          },
+          limit: {
+            type: "number",
+            description: "Max results (default 25)",
+          },
+        },
+        required: ["issueId"],
+      },
+    },
+    {
+      name: "create_attachment",
+      description: "Create an attachment (URL) on an issue",
+      inputSchema: {
+        type: "object",
+        properties: {
+          issueId: {
+            type: "string",
+            description: "Issue UUID",
+          },
+          url: {
+            type: "string",
+            description: "Attachment URL",
+          },
+          title: {
+            type: "string",
+            description: "Optional attachment title",
+          },
+        },
+        required: ["issueId", "url"],
+      },
+    },
+    {
+      name: "archive_issue",
+      description: "Archive an issue",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            description: "Issue UUID",
+          },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "list_teams",
+      description: "List all teams",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "list_projects",
+      description: "List projects, optionally filtered by team",
+      inputSchema: {
+        type: "object",
+        properties: {
+          team: {
+            type: "string",
+            description: "Team name filter",
+          },
+          limit: {
+            type: "number",
+            description: "Max results (default 25)",
+          },
+        },
+      },
+    },
+    {
+      name: "create_project",
+      description: "Create a new project",
+      inputSchema: {
+        type: "object",
+        properties: {
+          teamId: {
+            type: "string",
+            description: "Team UUID",
+          },
+          name: {
+            type: "string",
+            description: "Project name",
+          },
+          icon: {
+            type: "string",
+            description: "Optional icon (emoji or icon ID)",
+          },
+        },
+        required: ["teamId", "name"],
+      },
+    },
+    {
+      name: "update_project",
+      description: "Update a project",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            description: "Project UUID",
+          },
+          name: {
+            type: "string",
+            description: "New project name",
+          },
+        },
+        required: ["id"],
+      },
+    },
   ],
 }));
 
@@ -337,6 +532,106 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "create_document": {
         const result = await createDocument(
           args as { title: string; content: string; projectId?: string; issueId?: string },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "search_issues": {
+        const result = await searchIssues(
+          args as { query: string; team?: string; project?: string; assignee?: string; state?: string; limit?: number },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "list_comments": {
+        const result = await listComments(
+          args as { issueId: string; limit?: number },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "get_comment": {
+        const result = await getComment(
+          args as { id: string },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "list_attachments": {
+        const result = await listAttachments(
+          args as { issueId: string; limit?: number },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "create_attachment": {
+        const result = await createAttachment(
+          args as { issueId: string; url: string; title?: string },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "archive_issue": {
+        const result = await archiveIssue(
+          args as { id: string },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "list_teams": {
+        const result = await listTeams(
+          {} as Record<string, never>,
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "list_projects": {
+        const result = await listProjects(
+          args as { team?: string; limit?: number },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "create_project": {
+        const result = await createProject(
+          args as { teamId: string; name: string; icon?: string },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "update_project": {
+        const result = await updateProject(
+          args as { id: string; name?: string },
           graphql
         );
         return {

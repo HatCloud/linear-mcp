@@ -58,3 +58,19 @@ export interface StatusMapResult {
   // 团队所有状态的完整列表，含 type 信息，供需要精确匹配的场景使用
   all: Array<{ id: string; name: string; type: string }>;
 }
+
+// 评论类型（用于 list_comments 和 get_comment 工具）
+export interface Comment {
+  id: string;
+  body: string;
+  createdAt: string;
+  displayName: string;  // user.displayName
+}
+
+// 附件类型（用于 list_attachments 工具）
+export interface Attachment {
+  id: string;
+  url: string;
+  title: string;
+  createdAt: string;
+}
