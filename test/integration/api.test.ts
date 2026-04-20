@@ -97,6 +97,7 @@ describe.skipIf(SKIP)("Linear API Integration", () => {
     });
 
     it("get_issue reads the created issue", async () => {
+      expect(testIssueIdentifier).toBeDefined();
       const issue = await getIssue(
         { id: testIssueIdentifier, comments: false, sub_issues: false },
         graphql
@@ -107,6 +108,7 @@ describe.skipIf(SKIP)("Linear API Integration", () => {
     });
 
     it("update_issue updates title", async () => {
+      expect(testIssueId).toBeDefined();
       const result = await updateIssue(
         { id: testIssueId, title: "[Test] Updated title" },
         graphql
@@ -115,6 +117,7 @@ describe.skipIf(SKIP)("Linear API Integration", () => {
     });
 
     it("update_issue read-back consistency", async () => {
+      expect(testIssueIdentifier).toBeDefined();
       // Wait briefly for eventual consistency
       await new Promise((r) => setTimeout(r, 1000));
       const issue = await getIssue(
@@ -128,6 +131,7 @@ describe.skipIf(SKIP)("Linear API Integration", () => {
     });
 
     it("create_comment adds a comment", async () => {
+      expect(testIssueId).toBeDefined();
       const result = await createComment(
         { issueId: testIssueId, body: "Integration test comment" },
         graphql
@@ -137,6 +141,7 @@ describe.skipIf(SKIP)("Linear API Integration", () => {
     });
 
     it("list_comments returns the comment", async () => {
+      expect(testIssueId).toBeDefined();
       const comments = await listComments(
         { issueId: testIssueId },
         graphql
@@ -145,11 +150,13 @@ describe.skipIf(SKIP)("Linear API Integration", () => {
     });
 
     it("get_comment retrieves the comment", async () => {
+      expect(testCommentId).toBeDefined();
       const comment = await getComment({ id: testCommentId }, graphql);
       expect(comment.body).toBe("Integration test comment");
     });
 
     it("create_attachment adds an attachment", async () => {
+      expect(testIssueId).toBeDefined();
       const result = await createAttachment(
         {
           issueId: testIssueId,
@@ -162,6 +169,7 @@ describe.skipIf(SKIP)("Linear API Integration", () => {
     });
 
     it("list_attachments returns attachments for the issue", async () => {
+      expect(testIssueId).toBeDefined();
       const attachments = await listAttachments(
         { issueId: testIssueId },
         graphql
@@ -171,6 +179,7 @@ describe.skipIf(SKIP)("Linear API Integration", () => {
     });
 
     it("archive_issue cleans up test issue", async () => {
+      expect(testIssueId).toBeDefined();
       const result = await archiveIssue({ id: testIssueId }, graphql);
       expect(result.success).toBe(true);
     });

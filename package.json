@@ -14,7 +14,7 @@
     "test:integration": "vitest run test/integration/",
     "test:all": "vitest run",
     "prepublishOnly": "npm run build",
-    "prepare": "git config core.hooksPath .githooks"
+    "prepare": "test -d .git && git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.5.0"
