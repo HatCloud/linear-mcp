@@ -26,7 +26,7 @@ export async function listComments(
       }>;
     };
   }>(
-    `query ListComments($issueId: String!, $limit: Int!) {
+    `query ListComments($issueId: ID!, $limit: Int!) {
       comments(
         filter: { issue: { id: { eq: $issueId } } }
         first: $limit

@@ -13,7 +13,7 @@ interface RawProject {
   id: string;
   name: string;
   state: string;
-  teams: Array<{ id: string; key: string }>;
+  teams: { nodes: Array<{ id: string; key: string }> };
 }
 
 export async function listProjects(
@@ -34,7 +34,7 @@ export async function listProjects(
     query = `
       query ListProjectsByTeam($teamName: String!, $limit: Int!) {
         projects(
-          filter: { team: { name: { eq: $teamName } } }
+          filter: { accessibleTeams: { some: { name: { eq: $teamName } } } }
           first: $limit
         ) {
           nodes {
@@ -42,8 +42,10 @@ export async function listProjects(
             name
             state
             teams {
-              id
-              key
+              nodes {
+                id
+                key
+              }
             }
           }
         }
@@ -59,8 +61,10 @@ export async function listProjects(
             name
             state
             teams {
-              id
-              key
+              nodes {
+                id
+                key
+              }
             }
           }
         }
@@ -77,6 +81,6 @@ export async function listProjects(
     id: p.id,
     name: p.name,
     state: p.state,
-    teams: p.teams,
+    teams: p.teams.nodes,
   }));
 }

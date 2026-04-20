@@ -178,7 +178,7 @@ export async function listIssues(
   if (args.priority !== undefined) {
     filterParts.push({
       fragment: "priority: { eq: $priority }",
-      varDef: "$priority: Int!",
+      varDef: "$priority: Float!",
       varValue: { priority: args.priority },
     });
   }
