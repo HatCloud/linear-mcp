@@ -18,6 +18,10 @@ export async function updateDocument(
   if (args.title !== undefined) input.title = args.title;
   if (args.content !== undefined) input.content = args.content.replace(/\\n/g, "\n");
 
+  if (Object.keys(input).length === 0) {
+    throw new Error("updateDocument requires at least one of: title, content");
+  }
+
   const data = await graphql<{
     documentUpdate?: {
       success: boolean;

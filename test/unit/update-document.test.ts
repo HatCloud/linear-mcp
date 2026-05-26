@@ -61,6 +61,15 @@ describe("updateDocument", () => {
     ).rejects.toThrow("documentUpdate failed for document: doc-1");
   });
 
+  it("throws when neither title nor content is provided", async () => {
+    const mock = createMockGraphQL({ UpdateDocument: successResponse });
+
+    await expect(
+      updateDocument({ id: "doc-1" }, mock)
+    ).rejects.toThrow("updateDocument requires at least one of: title, content");
+    expect(mock.calls).toHaveLength(0);
+  });
+
   it("throws when documentUpdate returns no document", async () => {
     const mock = createMockGraphQL({
       UpdateDocument: { documentUpdate: { success: true, document: null } },

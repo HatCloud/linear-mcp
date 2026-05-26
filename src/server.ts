@@ -264,7 +264,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             description: "Project UUID",
           },
           limit: {
-            type: "number",
+            type: "integer",
             description: "Max results (default 25)",
           },
         },
