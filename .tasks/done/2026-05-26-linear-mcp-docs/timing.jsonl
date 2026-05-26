@@ -1,0 +1,12 @@
+{"event":"phase_start","phase":"P1","ts":"2026-05-26T00:00:00Z","wall_clock":"00:00:00"}
+{"event":"phase_end","phase":"P1","ts":"2026-05-26T00:01:00Z","wall_clock":"00:01:00"}
+{"event":"phase_start","phase":"P2","ts":"2026-05-26T00:03:00Z","wall_clock":"00:03:00"}
+{"event":"phase_end","phase":"P2","ts":"2026-05-26T00:08:00Z","wall_clock":"00:08:00"}
+{"event":"phase_start","phase":"P3","ts":"2026-05-26T00:09:00Z","wall_clock":"00:09:00"}
+{"event":"phase_end","phase":"P3","ts":"2026-05-26T00:12:00Z","wall_clock":"00:12:00"}
+{"event":"phase_start","phase":"P4","ts":"2026-05-26T00:13:00Z","wall_clock":"00:13:00"}
+{"event":"task_end","phase":"P4","task":"Task 1-5","ts":"2026-05-26T00:18:00Z","status":"done"}
+{"event":"phase_end","phase":"P4","ts":"2026-05-26T00:33:00Z","wall_clock":"00:33:00"}
+{"event":"phase_start","phase":"P5","ts":"2026-05-26T00:10:00Z","wall_clock":"00:10:00"}
+{"event":"phase_end","phase":"P5","ts":"2026-05-26T00:12:00Z","wall_clock":"00:12:00"}
+{"event":"phase_start","phase":"P6","ts":"2026-05-26T00:13:00Z","wall_clock":"00:13:00"}

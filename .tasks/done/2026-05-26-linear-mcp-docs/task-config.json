@@ -1,0 +1,19 @@
+{
+  "_schema_version": "2.0",
+  "preset": "lite",
+  "execution": {
+    "mode": "inline",
+    "engine": "auto"
+  },
+  "plugins": {
+    "scoring": { "enabled": false },
+    "review": { "enabled": true, "code_review": "light", "design_rounds": 0, "reviewer": "claude", "max_rounds": 3 },
+    "linear": { "enabled": true, "update_description": true, "upload_docs": true, "sync_sub_issues": false },
+    "git": { "enabled": true },
+    "observability": { "enabled": true },
+    "tdd": { "enabled": false, "mode": "none" },
+    "retrospective": { "enabled": false }
+  },
+  "todo_sync": true,
+  "phase_merge": []
+}

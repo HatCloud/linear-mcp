@@ -30,6 +30,9 @@ import { listTeams } from "./tools/list-teams.js";
 import { listProjects } from "./tools/list-projects.js";
 import { createProject } from "./tools/create-project.js";
 import { updateProject } from "./tools/update-project.js";
+import { listDocuments } from "./tools/list-documents.js";
+import { deleteDocument } from "./tools/delete-document.js";
+import { updateDocument } from "./tools/update-document.js";
 
 // ── 环境变量检查 ───────────────────────────────────────────────────────
 
@@ -248,6 +251,60 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
         },
         required: ["title", "content"],
+      },
+    },
+    {
+      name: "list_documents",
+      description: "List documents in a Linear project",
+      inputSchema: {
+        type: "object",
+        properties: {
+          projectId: {
+            type: "string",
+            description: "Project UUID",
+          },
+          limit: {
+            type: "integer",
+            description: "Max results (default 25)",
+          },
+        },
+        required: ["projectId"],
+      },
+    },
+    {
+      name: "delete_document",
+      description: "Delete a document",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            description: "Document UUID",
+          },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "update_document",
+      description: "Update a document's title or content",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            description: "Document UUID",
+          },
+          title: {
+            type: "string",
+            description: "New title",
+          },
+          content: {
+            type: "string",
+            description: "New content (Markdown)",
+          },
+        },
+        required: ["id"],
       },
     },
     {
@@ -532,6 +589,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "create_document": {
         const result = await createDocument(
           args as { title: string; content: string; projectId?: string; issueId?: string },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "list_documents": {
+        const result = await listDocuments(
+          args as { projectId: string; limit?: number },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "delete_document": {
+        const result = await deleteDocument(
+          args as { id: string },
+          graphql
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "update_document": {
+        const result = await updateDocument(
+          args as { id: string; title?: string; content?: string },
           graphql
         );
         return {
