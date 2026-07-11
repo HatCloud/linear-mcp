@@ -2,7 +2,7 @@
 //
 // Linear MCP Server — 入口文件
 //
-// 将 7 个工具函数组装为一个 MCP server，通过 stdio transport 与客户端通信。
+// 将 20 个工具函数组装为一个 MCP server，通过 stdio transport 与客户端通信。
 // 启动时读取 LINEAR_API_KEY 环境变量，创建 GraphQL 客户端，注册工具。
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
