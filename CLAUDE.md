@@ -8,6 +8,7 @@ Linear MCP Server — 为 Claude 等 AI 助手提供 Linear 项目管理工具�
 - MCP SDK: @modelcontextprotocol/sdk ^1.5.0
 - 构建: tsup
 - 测试: Vitest 4.x
+- 格式化: Prettier（`npm run format` 写入 / `npm run format:check` 校验，配置见 `.prettierrc`）
 
 ## 验证命令
 
