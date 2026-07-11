@@ -18,7 +18,8 @@ Linear MCP Server — 为 Claude 等 AI 助手提供 Linear 项目管理工具�
 ## 关键约定
 
 - 入口文件为 `src/server.ts`，GraphQL 查询集中在 `src/graphql.ts`
-- 类型定义集中在 `src/types.ts`
+- 类型定义集中在 `src/types.ts`（各工具的 args 接口就近定义在 `src/tools/<tool>.ts` 内）
+- `get_status_map` 的团队状态映射经 `src/status-cache.ts` 磁盘缓存（`~/.cache/linear-mcp/<apiKeyHash>/status-map`）：正常命中缓存，仅在 `expect` 未命中 / `update_issue` 带 state 提交失败 / `refresh:true` 时回源
 - 使用 `.githooks/` 目录管理 git hooks（`core.hooksPath` 通过 `prepare` script 配置）
 
 ## Linear 配置

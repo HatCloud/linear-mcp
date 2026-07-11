@@ -1,0 +1,62 @@
+{
+  "_schema_version": "2.0",
+  "preset": "standard",
+  "telegram_chat_id": "6457159333",
+  "branch": {
+    "mode": "keep",
+    "worktree": false,
+    "name": null
+  },
+  "headless": {
+    "existing_task": "continue",
+    "git_conventions": "default",
+    "dirty_policy": "ignore",
+    "degrade_policy": "conservative",
+    "linear_on_fail": "skip"
+  },
+  "end_decisions": {
+    "branch": "keep",
+    "claude_md": "auto_update",
+    "squash": true
+  },
+  "execution": {
+    "mode": "auto",
+    "fanout_min_batch": 3,
+    "engine": "auto"
+  },
+  "plugins": {
+    "review": {
+      "enabled": true,
+      "design_rounds": "auto",
+      "code_review": "medium",
+      "per_task_review": "checkpoint",
+      "reviewer": "auto",
+      "max_rounds": 3
+    },
+    "linear": {
+      "enabled": true,
+      "update_description": true,
+      "upload_docs": true,
+      "sync_sub_issues": true
+    },
+    "git": {
+      "enabled": true
+    },
+    "tdd": {
+      "enabled": true,
+      "mode": "lite"
+    },
+    "retrospective": {
+      "enabled": true
+    }
+  },
+  "todo_sync": "full",
+  "phase_merge": [],
+  "capabilities": {
+    "codex": {
+      "status": "FALLBACK",
+      "reason": "quota low (credit=0)",
+      "checked_at": "2026-07-11"
+    }
+  }
+}

@@ -1,0 +1,2 @@
+{"phase":"P2","integration_point":"design-review","requested_engine":"codex","actual_engine":"claude","reason":"codex-check FALLBACK: quota low (credit=0)","action":"fallback-to-native"}
+{"phase":"P3","integration_point":"plan-review","requested_engine":"codex","actual_engine":"claude","reason":"codex-check FALLBACK: quota low (credit=0)","action":"fallback-to-native"}

@@ -49,20 +49,22 @@
 // 所以用 `args.parentId !== undefined` 而不是 `args.parentId` 来判断是否传入。
 
 import type { GraphQLFn } from "../graphql.js";
+import { diskStatusCache, type StatusCache } from "../status-cache.js";
 
 // ── 主函数 ────────────────────────────────────────────────────────────
 
 export async function updateIssue(
   args: {
-    id: string;           // issue UUID（必须是 UUID，mutation 不支持 identifier）
-    state?: string;       // 新状态 UUID（不是名称）——通过 getStatusMap 获取
+    id: string; // issue UUID（必须是 UUID，mutation 不支持 identifier）
+    state?: string; // 新状态 UUID（不是名称）——通过 getStatusMap 获取
     description?: string; // issue 描述（Markdown 格式）
-    assignee?: string;    // 负责人的用户 UUID
-    title?: string;       // issue 标题
-    priority?: number;    // 0=None, 1=Urgent, 2=High, 3=Normal, 4=Low
-    parentId?: string | null;  // 父 issue UUID；null 表示移除父级关系
+    assignee?: string; // 负责人的用户 UUID
+    title?: string; // issue 标题
+    priority?: number; // 0=None, 1=Urgent, 2=High, 3=Normal, 4=Low
+    parentId?: string | null; // 父 issue UUID；null 表示移除父级关系
   },
-  graphql: GraphQLFn
+  graphql: GraphQLFn,
+  cache: StatusCache = diskStatusCache,
 ): Promise<{ id: string; identifier: string; title: string; state: string }> {
   // 动态构建 input 对象：只包含用户实际传入的字段
   // 不传的字段不加入 input，避免意外覆盖 Linear 中现有的值
@@ -97,34 +99,54 @@ export async function updateIssue(
     throw new Error("updateIssue: 没有提供任何要更新的字段");
   }
 
-  const data = await graphql<{
-    issueUpdate?: {
-      success: boolean;
-      issue: { id: string; identifier: string; title: string; state: { name: string } };
+  // 提交失败时的缓存失效（三失效触发之②）：若本次更新带 state（用的是缓存里的
+  // 状态 UUID）却提交失败，很可能是缓存的 UUID 已陈旧（状态被删/改）——失效整个
+  // status 缓存，下次 getStatusMap 自然 miss 回源，实现自愈。
+  // 失效条件仅看「带 state + 提交失败」，不区分具体失败原因（issue→team 未知，全清代价低）。
+  try {
+    const data = await graphql<{
+      issueUpdate?: {
+        success: boolean;
+        issue: { id: string; identifier: string; title: string; state: { name: string } };
+      };
+    }>(
+      `
+        mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
+          issueUpdate(id: $id, input: $input) {
+            success
+            issue {
+              id
+              identifier
+              title
+              state {
+                name
+              }
+            }
+          }
+        }
+      `,
+      { id: args.id, input },
+    );
+
+    const result = data.issueUpdate;
+    if (!result?.success) {
+      throw new Error(`issueUpdate failed for id: ${args.id}`);
+    }
+
+    const issue = result.issue;
+    if (!issue) {
+      throw new Error(`issueUpdate succeeded but returned no issue data`);
+    }
+    return {
+      id: issue.id,
+      identifier: issue.identifier,
+      title: issue.title,
+      state: issue.state.name,
     };
-  }>(
-    `mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
-      issueUpdate(id: $id, input: $input) {
-        success
-        issue { id identifier title state { name } }
-      }
-    }`,
-    { id: args.id, input }
-  );
-
-  const result = data.issueUpdate;
-  if (!result?.success) {
-    throw new Error(`issueUpdate failed for id: ${args.id}`);
+  } catch (err) {
+    if (args.state !== undefined) {
+      cache.invalidate();
+    }
+    throw err;
   }
-
-  const issue = result.issue;
-  if (!issue) {
-    throw new Error(`issueUpdate succeeded but returned no issue data`);
-  }
-  return {
-    id: issue.id,
-    identifier: issue.identifier,
-    title: issue.title,
-    state: issue.state.name,
-  };
 }

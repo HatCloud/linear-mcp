@@ -50,6 +50,7 @@
 
 import type { GraphQLFn } from "../graphql.js";
 import type { StatusMapResult } from "../types.js";
+import { diskStatusCache, type StatusCache } from "../status-cache.js";
 
 // ── 原始 GraphQL 响应类型（内部用）────────────────────────────────────
 
@@ -61,12 +62,38 @@ interface RawWorkflowState {
 
 // ── 主函数 ────────────────────────────────────────────────────────────
 
+// ── 缓存策略 ──────────────────────────────────────────────────────────
+//
+// 正常情况直接命中本地磁盘缓存；仅三类失效场景回源：
+//   ① 目标 status 不在缓存（args.expect 指定的状态名不在缓存 map 中）
+//   ② 显式 refresh:true（对应「提交出错回源」由 update-issue 侧 invalidate 缓存实现）
+//   ③ （回源后写回缓存，供下次命中）
+//
+// 命中判定发生在 resolveTeamId（可能发网络）之前——按原始 team 输入分键，
+// 因此 key 输入（如 "HAT"）命中时不必先做 key→UUID 的 teams 查询。
+
 export async function getStatusMap(
-  args: { team: string },
-  graphql: GraphQLFn
+  args: { team: string; refresh?: boolean; expect?: string },
+  graphql: GraphQLFn,
+  cache: StatusCache = diskStatusCache,
 ): Promise<StatusMapResult> {
+  const key = args.team;
+
+  if (!args.refresh) {
+    const cached = cache.read(key);
+    if (cached) {
+      // expect 未指定 → 直接命中；指定则要求该状态名在缓存 map 中，否则视为 miss 回源。
+      const expectSatisfied =
+        !args.expect || Object.prototype.hasOwnProperty.call(cached.map, args.expect);
+      if (expectSatisfied) return cached;
+    }
+  }
+
+  // miss / refresh / expect-miss → 回源并写缓存。
   const teamId = await resolveTeamId(args.team, graphql);
-  return fetchStatusMap(teamId, graphql);
+  const result = await fetchStatusMap(teamId, graphql);
+  cache.write(key, result);
+  return result;
 }
 
 // ── Team Key 解析 ─────────────────────────────────────────────────────
@@ -87,20 +114,21 @@ async function resolveTeamId(input: string, graphql: GraphQLFn): Promise<string>
   const data = await graphql<{ teams?: { nodes: Array<{ id: string; key: string }> } }>(`
     query {
       teams {
-        nodes { id key }
+        nodes {
+          id
+          key
+        }
       }
     }
   `);
 
   const teams = data.teams?.nodes ?? [];
   // key 不区分大小写匹配（Linear 的 key 一般全大写，但容错处理）
-  const match = teams.find(
-    (t) => t.key.toLowerCase() === input.toLowerCase()
-  );
+  const match = teams.find((t) => t.key.toLowerCase() === input.toLowerCase());
 
   if (!match) {
     throw new Error(
-      `Team key "${input}" not found. Available keys: ${teams.map((t) => t.key).join(", ")}`
+      `Team key "${input}" not found. Available keys: ${teams.map((t) => t.key).join(", ")}`,
     );
   }
 
@@ -112,13 +140,17 @@ async function resolveTeamId(input: string, graphql: GraphQLFn): Promise<string>
 async function fetchStatusMap(teamId: string, graphql: GraphQLFn): Promise<StatusMapResult> {
   const data = await graphql<{ workflowStates?: { nodes: RawWorkflowState[] } }>(
     `
-    query GetStatuses($teamId: ID!) {
-      workflowStates(filter: { team: { id: { eq: $teamId } } }) {
-        nodes { id name type }
+      query GetStatuses($teamId: ID!) {
+        workflowStates(filter: { team: { id: { eq: $teamId } } }) {
+          nodes {
+            id
+            name
+            type
+          }
+        }
       }
-    }
     `,
-    { teamId }
+    { teamId },
   );
 
   const nodes = data.workflowStates?.nodes ?? [];

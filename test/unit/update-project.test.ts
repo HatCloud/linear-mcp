@@ -5,7 +5,12 @@ import { createMockGraphQL, lastCall } from "../setup.js";
 const successResponse = {
   projectUpdate: {
     success: true,
-    project: { id: "proj-1", name: "Renamed Project", state: "started", url: "https://linear.app/hat/project/proj-1" },
+    project: {
+      id: "proj-1",
+      name: "Renamed Project",
+      state: "started",
+      url: "https://linear.app/hat/project/proj-1",
+    },
   },
 };
 
@@ -44,9 +49,9 @@ describe("updateProject", () => {
       UpdateProject: { projectUpdate: { success: false, project: null } },
     });
 
-    await expect(
-      updateProject({ id: "proj-uuid", name: "Fail" }, mock)
-    ).rejects.toThrow("projectUpdate failed");
+    await expect(updateProject({ id: "proj-uuid", name: "Fail" }, mock)).rejects.toThrow(
+      "projectUpdate failed",
+    );
   });
 
   it("throws when projectUpdate returns no project data", async () => {
@@ -54,8 +59,52 @@ describe("updateProject", () => {
       UpdateProject: { projectUpdate: { success: true, project: null } },
     });
 
-    await expect(
-      updateProject({ id: "proj-uuid", name: "Empty" }, mock)
-    ).rejects.toThrow("projectUpdate succeeded but returned no project data");
+    await expect(updateProject({ id: "proj-uuid", name: "Empty" }, mock)).rejects.toThrow(
+      "projectUpdate succeeded but returned no project data",
+    );
+  });
+
+  it("builds input with all provided scalar fields", async () => {
+    const mock = createMockGraphQL({ UpdateProject: successResponse });
+
+    await updateProject(
+      {
+        id: "proj-uuid",
+        icon: "FaceMonocle",
+        color: "#f2994a",
+        description: "summary",
+        content: "# body",
+        statusId: "status-uuid",
+        leadId: "lead-uuid",
+        memberIds: ["m1"],
+        startDate: "2026-07-01",
+        targetDate: "2026-09-01",
+        priority: 3,
+      },
+      mock,
+    );
+
+    const input = lastCall(mock).variables.input as Record<string, unknown>;
+    expect(input).toMatchObject({
+      icon: "FaceMonocle",
+      color: "#f2994a",
+      description: "summary",
+      content: "# body",
+      statusId: "status-uuid",
+      leadId: "lead-uuid",
+      memberIds: ["m1"],
+      startDate: "2026-07-01",
+      targetDate: "2026-09-01",
+      priority: 3,
+    });
+  });
+
+  it("only includes provided fields (avoids clobbering unset fields)", async () => {
+    const mock = createMockGraphQL({ UpdateProject: successResponse });
+
+    await updateProject({ id: "proj-uuid", description: "just this" }, mock);
+    const input = lastCall(mock).variables.input as Record<string, unknown>;
+
+    expect(Object.keys(input)).toEqual(["description"]);
   });
 });

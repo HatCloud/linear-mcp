@@ -1,0 +1,14 @@
+{
+  "issueId": "HAT-570",
+  "issueUuid": "2ef6331f-d91c-4a92-ab1c-9c55627efc32",
+  "issueUrl": "https://linear.app/hatcloud/issue/HAT-570/新增完备-project-创建编辑-status-本地磁盘缓存",
+  "statusMap": {
+    "Backlog": "7a9ef796-09f4-49d9-96db-17815095cbd2",
+    "Todo": "b9ba8594-3fd3-413e-b511-3a1075126603",
+    "In Progress": "2772a0ab-24e9-490a-825c-a52e3b023fb7",
+    "In Review": "d48a4652-8c86-4bf8-9583-c8b70447ac4c",
+    "Done": "9cae7ac7-fa35-4274-902c-ab5a873e0f9a",
+    "Canceled": "77bcbd0a-b9b5-4515-9d90-12696dffc5f3",
+    "Duplicate": "f1457ddd-c4a1-4c46-be80-5464ab181752"
+  }
+}

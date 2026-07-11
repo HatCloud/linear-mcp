@@ -7,10 +7,7 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 import { createGraphQLClient } from "./graphql.js";
 import { getIssue } from "./tools/get-issue.js";
@@ -28,8 +25,8 @@ import { createAttachment } from "./tools/create-attachment.js";
 import { archiveIssue } from "./tools/archive-issue.js";
 import { listTeams } from "./tools/list-teams.js";
 import { listProjects } from "./tools/list-projects.js";
-import { createProject } from "./tools/create-project.js";
-import { updateProject } from "./tools/update-project.js";
+import { createProject, type CreateProjectArgs } from "./tools/create-project.js";
+import { updateProject, type UpdateProjectArgs } from "./tools/update-project.js";
 import { listDocuments } from "./tools/list-documents.js";
 import { deleteDocument } from "./tools/delete-document.js";
 import { updateDocument } from "./tools/update-document.js";
@@ -51,7 +48,7 @@ const graphql = createGraphQLClient(apiKey);
 
 const server = new Server(
   { name: "@hatcloud/linear-mcp", version: "1.0.0" },
-  { capabilities: { tools: {} } }
+  { capabilities: { tools: {} } },
 );
 
 // ── ListTools Handler ─────────────────────────────────────────────────
@@ -60,13 +57,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "get_issue",
-      description: "Gets full details of a Linear issue (description, comments, sub-issues in one query)",
+      description:
+        "Gets full details of a Linear issue (description, comments, sub-issues in one query)",
       inputSchema: {
         type: "object",
         properties: {
           id: {
             type: "string",
-            description: "Issue UUID or identifier like \"HAT-155\"",
+            description: 'Issue UUID or identifier like "HAT-155"',
           },
           comments: {
             type: "boolean",
@@ -92,11 +90,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
           assignee: {
             type: "string",
-            description: "\"me\", UUID, or \"null\" for unassigned",
+            description: '"me", UUID, or "null" for unassigned',
           },
           state: {
             type: "string",
-            description: "State name filter (e.g. \"started\", \"In Progress\")",
+            description: 'State name filter (e.g. "started", "In Progress")',
           },
           parentId: {
             type: "string",
@@ -119,13 +117,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "get_status_map",
-      description: "Gets a map of status names to IDs for a team",
+      description:
+        "Gets a map of status names to IDs for a team (locally cached; refetches only on cache miss / expect miss / refresh)",
       inputSchema: {
         type: "object",
         properties: {
           team: {
             type: "string",
-            description: "Team key (e.g. \"HAT\") or UUID",
+            description: 'Team key (e.g. "HAT") or UUID',
+          },
+          refresh: {
+            type: "boolean",
+            description: "Bypass the local cache and refetch from Linear",
+          },
+          expect: {
+            type: "string",
+            description:
+              "A status name you expect to exist; if a cached map lacks it, the cache is treated as stale and refetched once",
           },
         },
         required: ["team"],
@@ -227,7 +235,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "create_document",
-      description: "Creates a document in Linear belonging to a project, optionally linked to an issue",
+      description:
+        "Creates a document in Linear belonging to a project, optionally linked to an issue",
       inputSchema: {
         type: "object",
         properties: {
@@ -327,7 +336,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
           assignee: {
             type: "string",
-            description: "\"me\" or user UUID",
+            description: '"me" or user UUID',
           },
           state: {
             type: "string",
@@ -349,7 +358,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           issueId: {
             type: "string",
-            description: "Issue UUID or identifier (e.g. \"HAT-155\")",
+            description: 'Issue UUID or identifier (e.g. "HAT-155")',
           },
           limit: {
             type: "number",
@@ -454,21 +463,48 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "create_project",
-      description: "Create a new project",
+      description:
+        "Create a fully-populated project (icon, color, description, overview content, dates, lead/members, status, and milestones)",
       inputSchema: {
         type: "object",
         properties: {
-          teamId: {
-            type: "string",
-            description: "Team UUID",
-          },
-          name: {
-            type: "string",
-            description: "Project name",
-          },
+          teamId: { type: "string", description: "Team UUID" },
+          name: { type: "string", description: "Project name" },
           icon: {
             type: "string",
-            description: "Optional icon (emoji or icon ID)",
+            description: 'Linear icon name (e.g. "FaceMonocle") or an emoji',
+          },
+          color: { type: "string", description: 'Hex color, e.g. "#f2994a"' },
+          description: { type: "string", description: "One-line summary" },
+          content: { type: "string", description: "Overview body (Markdown)" },
+          statusId: { type: "string", description: "Project status UUID" },
+          leadId: { type: "string", description: "Lead user UUID" },
+          memberIds: {
+            type: "array",
+            items: { type: "string" },
+            description: "Member user UUIDs",
+          },
+          startDate: { type: "string", description: "Start date (YYYY-MM-DD)" },
+          targetDate: { type: "string", description: "Target date (YYYY-MM-DD)" },
+          priority: {
+            type: "number",
+            description: "0=None, 1=Urgent, 2=High, 3=Normal, 4=Low",
+          },
+          milestones: {
+            type: "array",
+            description: "Milestones to create in order",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Milestone name" },
+                description: { type: "string", description: "Optional description" },
+                targetDate: {
+                  type: "string",
+                  description: "Optional target date (YYYY-MM-DD)",
+                },
+              },
+              required: ["name"],
+            },
           },
         },
         required: ["teamId", "name"],
@@ -476,17 +512,32 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "update_project",
-      description: "Update a project",
+      description:
+        "Update a project's fields (name, icon, color, description, content, dates, lead/members, status, priority)",
       inputSchema: {
         type: "object",
         properties: {
-          id: {
+          id: { type: "string", description: "Project UUID" },
+          name: { type: "string", description: "New project name" },
+          icon: {
             type: "string",
-            description: "Project UUID",
+            description: 'Linear icon name (e.g. "FaceMonocle") or an emoji',
           },
-          name: {
-            type: "string",
-            description: "New project name",
+          color: { type: "string", description: 'Hex color, e.g. "#f2994a"' },
+          description: { type: "string", description: "One-line summary" },
+          content: { type: "string", description: "Overview body (Markdown)" },
+          statusId: { type: "string", description: "Project status UUID" },
+          leadId: { type: "string", description: "Lead user UUID" },
+          memberIds: {
+            type: "array",
+            items: { type: "string" },
+            description: "Member user UUIDs",
+          },
+          startDate: { type: "string", description: "Start date (YYYY-MM-DD)" },
+          targetDate: { type: "string", description: "Target date (YYYY-MM-DD)" },
+          priority: {
+            type: "number",
+            description: "0=None, 1=Urgent, 2=High, 3=Normal, 4=Low",
           },
         },
         required: ["id"],
@@ -505,7 +556,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_issue": {
         const result = await getIssue(
           args as { id: string; comments?: boolean; sub_issues?: boolean },
-          graphql
+          graphql,
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -523,7 +574,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             query?: string;
             limit?: number;
           },
-          graphql
+          graphql,
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -532,8 +583,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_status_map": {
         const result = await getStatusMap(
-          args as { team: string },
-          graphql
+          args as { team: string; refresh?: boolean; expect?: string },
+          graphql,
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -551,7 +602,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             priority?: number;
             parentId?: string | null;
           },
-          graphql
+          graphql,
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -569,7 +620,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             assignee?: string;
             priority?: number;
           },
-          graphql
+          graphql,
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -577,10 +628,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "create_comment": {
-        const result = await createComment(
-          args as { issueId: string; body: string },
-          graphql
-        );
+        const result = await createComment(args as { issueId: string; body: string }, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
@@ -589,7 +637,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "create_document": {
         const result = await createDocument(
           args as { title: string; content: string; projectId?: string; issueId?: string },
-          graphql
+          graphql,
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -597,20 +645,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "list_documents": {
-        const result = await listDocuments(
-          args as { projectId: string; limit?: number },
-          graphql
-        );
+        const result = await listDocuments(args as { projectId: string; limit?: number }, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 
       case "delete_document": {
-        const result = await deleteDocument(
-          args as { id: string },
-          graphql
-        );
+        const result = await deleteDocument(args as { id: string }, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
@@ -619,7 +661,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "update_document": {
         const result = await updateDocument(
           args as { id: string; title?: string; content?: string },
-          graphql
+          graphql,
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -628,8 +670,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "search_issues": {
         const result = await searchIssues(
-          args as { query: string; team?: string; project?: string; assignee?: string; state?: string; limit?: number },
-          graphql
+          args as {
+            query: string;
+            team?: string;
+            project?: string;
+            assignee?: string;
+            state?: string;
+            limit?: number;
+          },
+          graphql,
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -637,30 +686,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "list_comments": {
-        const result = await listComments(
-          args as { issueId: string; limit?: number },
-          graphql
-        );
+        const result = await listComments(args as { issueId: string; limit?: number }, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 
       case "get_comment": {
-        const result = await getComment(
-          args as { id: string },
-          graphql
-        );
+        const result = await getComment(args as { id: string }, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 
       case "list_attachments": {
-        const result = await listAttachments(
-          args as { issueId: string; limit?: number },
-          graphql
-        );
+        const result = await listAttachments(args as { issueId: string; limit?: number }, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
@@ -669,7 +709,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "create_attachment": {
         const result = await createAttachment(
           args as { issueId: string; url: string; title?: string },
-          graphql
+          graphql,
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -677,50 +717,38 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "archive_issue": {
-        const result = await archiveIssue(
-          args as { id: string },
-          graphql
-        );
+        const result = await archiveIssue(args as { id: string }, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 
       case "list_teams": {
-        const result = await listTeams(
-          {} as Record<string, never>,
-          graphql
-        );
+        const result = await listTeams({} as Record<string, never>, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 
       case "list_projects": {
-        const result = await listProjects(
-          args as { team?: string; limit?: number },
-          graphql
-        );
+        const result = await listProjects(args as { team?: string; limit?: number }, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 
       case "create_project": {
-        const result = await createProject(
-          args as { teamId: string; name: string; icon?: string },
-          graphql
-        );
+        // 双重断言：MCP 的 args 是 Record<string,unknown>|undefined，与含必需字段的
+        // CreateProjectArgs 无足够重叠，TS 需经 unknown 才允许断言（入参已由 inputSchema 校验）。
+        const result = await createProject(args as unknown as CreateProjectArgs, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 
       case "update_project": {
-        const result = await updateProject(
-          args as { id: string; name?: string },
-          graphql
-        );
+        // 双重断言同上（见 create_project）。
+        const result = await updateProject(args as unknown as UpdateProjectArgs, graphql);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };

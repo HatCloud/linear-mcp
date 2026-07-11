@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "state": "terminal",
+  "phase": null,
+  "stop_point": null,
+  "resume_hint": null,
+  "expected_input": null,
+  "outcome": "done",
+  "updated_at": "2026-07-11T10:51:27Z",
+  "stopped_at": null,
+  "session_id": "2b72f9eb-0327-4bc6-a4f9-3516fc6947b6"
+}

@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "activate_after": "now",
+  "task_type": "self_test",
+  "telegram_chat_id": "6457159333",
+  "triggered_at": "2026-07-11T09:32:45Z",
+  "degrade_policy": "conservative",
+  "end_decisions": {
+    "branch": "keep",
+    "claude_md": "auto_update",
+    "squash": true
+  }
+}
