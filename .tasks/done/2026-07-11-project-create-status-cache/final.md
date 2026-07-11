@@ -38,9 +38,9 @@
 
 - [x] Verification commands passed: `npm run build && npm test`（exit 0，128 tests passed）
 - [x] Automated acceptance passed（见 acceptance-checklist.md Round 1，11 项 MUST 全 PASS）
-- 待人工验收（无人值守 self_test，DEFERRED）：
-  - [ ] [MUST] 成功发布新版本到 npm（`npm run release:minor` 1.3.0→1.4.0）— 见下方「发布」
-  - [ ] [SHOULD] 真实 Linear 集成调 create_project（含 milestones）目视核对 overview 信息饱满（DEFERRED，可选）
+- [x] [MUST] 成功发布新版本到 npm：`npm run release:minor` 完成（1.3.0→1.4.0；npm registry 已确认 `@hatcloud/linear-mcp@1.4.0`、tag `v1.4.0` 推送 origin、main 推送 `9c78061..a785c1e`）
+- 待人工验收（SHOULD，DEFERRED，可选）：
+  - [ ] [SHOULD] 真实 Linear 集成调 create_project（含 milestones）目视核对 overview 信息饱满
 
 ## Changelog Entry
 

@@ -37,8 +37,8 @@ Linear 同步：HAT-570 → In Review ✓
 > 无人值守 self_test：人工项 → 预填 DEFERRED，留待 task-end 后人工验收。
 
 1. [MUST] 成功发布新版本到 npm：`npm run release:minor`（1.3.0 → 1.4.0，`npm publish --access public` 成功、tag 推送）
-   测试方法：End 阶段 squash 之后执行 `npm run release:minor`（不可逆对外操作，需人工确认；npm 已认证 hatcloud、remote origin 就绪）
-   → DEFERRED（待 task-end squash 后执行 release，需人工确认）
+   测试方法：End 阶段 squash 之后执行 `npm run release:minor`
+   → PASS（npm registry @hatcloud/linear-mcp@1.4.0 已确认；tag v1.4.0 + main 已推 origin）
 2. [SHOULD] 用真实 Linear 集成调一次 create_project（含 milestones）人工核对 overview 信息饱满
    测试方法：真实调 create_project 传完整字段 + 里程碑，在 Linear overview 目视核对
    → DEFERRED（待人工验收）
