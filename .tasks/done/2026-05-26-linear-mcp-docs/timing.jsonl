@@ -10,3 +10,4 @@
 {"event":"phase_start","phase":"P5","ts":"2026-05-26T00:10:00Z","wall_clock":"00:10:00"}
 {"event":"phase_end","phase":"P5","ts":"2026-05-26T00:12:00Z","wall_clock":"00:12:00"}
 {"event":"phase_start","phase":"P6","ts":"2026-05-26T00:13:00Z","wall_clock":"00:13:00"}
+{"event":"phase_end","phase":"P6","ts":"2026-05-26T00:16:00Z","wall_clock":"00:16:00"}
