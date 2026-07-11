@@ -464,7 +464,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "create_project",
       description:
-        "Create a fully-populated project (icon, color, description, overview content, dates, lead/members, status, and milestones)",
+        "Create a fully-populated project. Populate BOTH `description` (one-line summary) and `content` (Markdown overview body) — distill them from the repository's README / CLAUDE.md when available, rather than leaving them empty. Also supports icon, color, dates, lead/members, status, and milestones.",
       inputSchema: {
         type: "object",
         properties: {
